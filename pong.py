@@ -4,6 +4,7 @@ from time import sleep
 
 from fontcontroller import FontController
 from rendertext import RenderText
+from AiController import AiController
 
 black = (0,0,0)
 white = (255,255,255)
@@ -62,10 +63,10 @@ def check_player_collision(player_pos_vec, puck_pos_vec, player_width, player_he
 
 	return puckx_collide and pucky_collide
 
-def reset_puck(right_player_pos, puck_pos, puck_velocity, winx, winy):
+def reset_puck(player_pos, puck_pos, puck_velocity, winx, winy):
 	puck_pos = pygame.Vector2(winx//2, winy//2)
 
-	puck_velocity = right_player_pos - puck_pos
+	puck_velocity = player_pos - puck_pos
 	puck_velocity.normalize_ip()
 
 	# Starting puck speed, going towards the right player
@@ -81,7 +82,11 @@ def main(winx=400, winy=600):
 
 	screen = pygame.display.set_mode((winx, winy))
 
+	player_width = 10
+	player_height = 50
+
 	font_controller = FontController()
+	ai_controller = AiController(winx, winy, player_width, player_height)
 
 	clock = pygame.time.Clock()
 
@@ -91,9 +96,6 @@ def main(winx=400, winy=600):
 	player2_score = 0
 	player1_score_rendertext = RenderText(font_controller, white, black)
 	player2_score_rendertext = RenderText(font_controller, white, black)
-
-	player_width = 10
-	player_height = 50
 
 	quart_screen = winx//4
 
@@ -108,9 +110,14 @@ def main(winx=400, winy=600):
 	puck_velocity = pygame.Vector2(0, 0)
 	puck_pos, puck_velocity = reset_puck(right_player_pos, puck_pos, puck_velocity, winx, winy)
 
+	puck_dir = 1
+	player_speed = 20
+
 	while not done:
 		puck_pos.x += puck_velocity.x
 		puck_pos.y += puck_velocity.y
+
+		ai_controller.run(puck_pos, puck_dir, right_player_pos)
 
 		left_player_did_collide = check_player_collision(left_player_pos, puck_pos, player_width, player_height)
 		right_player_did_collide = check_player_collision(right_player_pos, puck_pos, player_width, player_height)
@@ -119,17 +126,29 @@ def main(winx=400, winy=600):
 			# print("left_player_did_collide")
 			puck_velocity.reflect_ip(pygame.Vector2(1,0))
 
+			pvl = puck_velocity.length()
+			puck_velocity.normalize_ip()
+			puck_velocity.scale_to_length(max(pvl, random.randint(1,4)))
+
 			# Get rid of jank collision bug, by hand
 			puck_pos.x = left_player_pos.x
 			puck_pos.x += 10
 
+			puck_dir = 1
+
 		if right_player_did_collide:
 			# print("right_player_did_collide")
 			puck_velocity.reflect_ip(pygame.Vector2(1,0))
+			
+			pvl = puck_velocity.length()
+			puck_velocity.normalize_ip()
+			puck_velocity.scale_to_length(max(pvl, random.randint(1,4)))
 
 			# Get rid of jank collision bug, by hand
 			puck_pos.x = right_player_pos.x
 			puck_pos.x -= 10
+
+			puck_dir = -1
 
 		cws = check_puck_wall_collision(puck_pos, winx, winy)
 		if cws[0]:
@@ -143,17 +162,18 @@ def main(winx=400, winy=600):
 					player2_score += 1
 				elif cws[1] == 1:
 					player1_score += 1
-				puck_pos, puck_velocity = reset_puck(right_player_pos, puck_pos, puck_velocity, winx, winy)
+				pd = left_player_pos if puck_dir == -1 else right_player_pos
+				puck_pos, puck_velocity = reset_puck(pd, puck_pos, puck_velocity, winx, winy)
 
 		events = pygame.event.get()
 		for e in events:
 			if e.type == pygame.MOUSEBUTTONDOWN:
 				if e.button == 4:
 					if left_player_pos.y >= 10:
-						left_player_pos.y -= 10
+						left_player_pos.y -= player_speed
 				if e.button == 5:
 					if (left_player_pos.y + player_height) <= (winy - 10):
-						left_player_pos.y += 10
+						left_player_pos.y += player_speed
 			if e.type == pygame.KEYDOWN:
 				if e.key == pygame.K_ESCAPE:
 					done = True
