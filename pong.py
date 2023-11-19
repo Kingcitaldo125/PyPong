@@ -55,7 +55,10 @@ def check_player_collision(player_pos_vec, puck_pos_vec, player_width, player_he
 	puckx, pucky = puck_pos_vec.x, puck_pos_vec.y
 	playerx, playery = player_pos_vec.x, player_pos_vec.y
 
-	return ((puckx + puck_size) >= playerx and puckx <= (playerx + player_width)) and (pucky >= playery and pucky <= (playery + player_height))
+	puckx_collide = ((puckx + puck_size) >= playerx and puckx <= (playerx + player_width))
+	pucky_collide = ((pucky + puck_size) >= playery and pucky <= (playery + player_height))
+
+	return puckx_collide and pucky_collide
 
 def reset_puck(right_player_pos, puck_pos, puck_velocity, winx, winy):
 	puck_pos = pygame.Vector2(winx//2, winy//2)
@@ -128,11 +131,12 @@ def main(winx=800, winy=600):
 
 		events = pygame.event.get()
 		for e in events:
-			if e.type == pygame.KEYDOWN:
-				if e.key == pygame.K_UP:
+			if e.type == pygame.MOUSEBUTTONDOWN:
+				if e.button == 4:
 					left_player_pos.y -= 10
-				if e.key == pygame.K_DOWN:
+				if e.button == 5:
 					left_player_pos.y += 10
+			if e.type == pygame.KEYDOWN:
 				if e.key == pygame.K_ESCAPE:
 					done = True
 
