@@ -111,7 +111,7 @@ def main(winx=400, winy=600):
 	puck_pos, puck_velocity = reset_puck(right_player_pos, puck_pos, puck_velocity, winx, winy)
 
 	puck_dir = 1
-	player_speed = 20
+	player_speed = 15
 
 	while not done:
 		puck_pos.x += puck_velocity.x
@@ -126,9 +126,9 @@ def main(winx=400, winy=600):
 			# print("left_player_did_collide")
 			puck_velocity.reflect_ip(pygame.Vector2(1,0))
 
-			pvl = puck_velocity.length()
+			pvl = int(puck_velocity.length())
 			puck_velocity.normalize_ip()
-			puck_velocity.scale_to_length(max(pvl, random.randint(1,4)))
+			puck_velocity.scale_to_length(max(pvl, random.randint(pvl, pvl + 1)))
 
 			# Get rid of jank collision bug, by hand
 			puck_pos.x = left_player_pos.x
@@ -140,9 +140,9 @@ def main(winx=400, winy=600):
 			# print("right_player_did_collide")
 			puck_velocity.reflect_ip(pygame.Vector2(1,0))
 			
-			pvl = puck_velocity.length()
+			pvl = int(puck_velocity.length())
 			puck_velocity.normalize_ip()
-			puck_velocity.scale_to_length(max(pvl, random.randint(1,4)))
+			puck_velocity.scale_to_length(max(pvl, random.randint(pvl, pvl + 1)))
 
 			# Get rid of jank collision bug, by hand
 			puck_pos.x = right_player_pos.x
