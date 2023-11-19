@@ -35,11 +35,13 @@ def draw_player(screen, pos_vec, player_width, player_height):
 	global white
 	pygame.draw.rect(screen, white, (pos_vec.x, pos_vec.y, player_width, player_height))
 
-def check_wall_collision(puck_pos_vec, winx, winy):
+def check_puck_wall_collision(puck_pos_vec, winx, winy):
 	puckx, pucky = puck_pos_vec.x, puck_pos_vec.y
 
-	did_collide_left = (puckx <= winx//2) and (puckx <= 0 or pucky <= 0 or pucky >= winy)
-	did_collide_right = (puckx > winx//2) and (puckx > winx or pucky <= 0 or pucky >= winy)
+	doreflect = pucky <= 0 or pucky >= winy
+
+	did_collide_left = (puckx <= winx//2) and (puckx <= 0 or doreflect)
+	did_collide_right = (puckx > winx//2) and (puckx > winx or doreflect)
 
 	did_collide = did_collide_left or did_collide_right
 
@@ -47,7 +49,7 @@ def check_wall_collision(puck_pos_vec, winx, winy):
 	if did_collide:
 		direction = 0 if did_collide_left else did_collide_right
 
-	return [did_collide, direction]
+	return [did_collide, direction, doreflect]
 
 def check_player_collision(player_pos_vec, puck_pos_vec, player_width, player_height):
 	global puck_size
@@ -67,11 +69,11 @@ def reset_puck(right_player_pos, puck_pos, puck_velocity, winx, winy):
 	puck_velocity.normalize_ip()
 
 	# Starting puck speed, going towards the right player
-	puck_velocity.scale_to_length(1)
+	puck_velocity.scale_to_length(2)
 
 	return [puck_pos, puck_velocity]
 
-def main(winx=800, winy=600):
+def main(winx=400, winy=600):
 	global black
 	global white
 
@@ -114,28 +116,44 @@ def main(winx=800, winy=600):
 		right_player_did_collide = check_player_collision(right_player_pos, puck_pos, player_width, player_height)
 
 		if left_player_did_collide:
-			print("left_player_did_collide")
+			# print("left_player_did_collide")
 			puck_velocity.reflect_ip(pygame.Vector2(1,0))
+
+			# Get rid of jank collision bug, by hand
+			puck_pos.x = left_player_pos.x
+			puck_pos.x += 10
 
 		if right_player_did_collide:
-			print("right_player_did_collide")
+			# print("right_player_did_collide")
 			puck_velocity.reflect_ip(pygame.Vector2(1,0))
 
-		cws = check_wall_collision(puck_pos, winx, winy)
+			# Get rid of jank collision bug, by hand
+			puck_pos.x = right_player_pos.x
+			puck_pos.x -= 10
+
+		cws = check_puck_wall_collision(puck_pos, winx, winy)
 		if cws[0]:
-			if cws[1] == 0:
-				player2_score += 1
-			elif cws[1] == 1:
-				player1_score += 1
-			puck_pos, puck_velocity = reset_puck(right_player_pos, puck_pos, puck_velocity, winx, winy)
+			doreflect = cws[2]
+
+			# Bounce the puck of the top/bottom wall
+			if doreflect:
+				puck_velocity.reflect_ip(pygame.Vector2(0,1))
+			else: # we hit a back wall of a player
+				if cws[1] == 0:
+					player2_score += 1
+				elif cws[1] == 1:
+					player1_score += 1
+				puck_pos, puck_velocity = reset_puck(right_player_pos, puck_pos, puck_velocity, winx, winy)
 
 		events = pygame.event.get()
 		for e in events:
 			if e.type == pygame.MOUSEBUTTONDOWN:
 				if e.button == 4:
-					left_player_pos.y -= 10
+					if left_player_pos.y >= 10:
+						left_player_pos.y -= 10
 				if e.button == 5:
-					left_player_pos.y += 10
+					if (left_player_pos.y + player_height) <= (winy - 10):
+						left_player_pos.y += 10
 			if e.type == pygame.KEYDOWN:
 				if e.key == pygame.K_ESCAPE:
 					done = True
